@@ -1,4 +1,4 @@
-namespace EnterpriseFront.Data
+namespace EnterpriseMinimal.Data
 {
     public class WeatherForecast
     {

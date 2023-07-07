@@ -1,4 +1,7 @@
-﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using Dapper;
+using Microsoft.AspNetCore.Http.HttpResults;
+using System.Data.SqlClient;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MinimalApiDapper
 {
@@ -9,23 +12,32 @@ namespace MinimalApiDapper
             //aqui é onde vou fazer meu mapeamento (endpoint) na API
             app.MapGet(pattern: "/Users", GetUsers);
             app.MapGet(pattern: "/Useres/{id}", GetUser);
-            app.MapPost(pattern: "/Users", InsertUser);
-            app.MapPut(pattern: "/Users", UpdateUser);
-            app.MapDelete("/Users", DeleteUser);
+            app.MapPost(pattern: "/InsertUser", InsertUser);
+            app.MapPut(pattern: "/UpdateUser", UpdateUser);
+            app.MapDelete("/DeletarUsuarios/{id}", DeleteUser);
         }
 
-        private static async Task<IResult> GetUsers(IUserData data)
+        private static async Task<IResult> GetUsers()
         {
+            string ConexaoIntranet = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MinimalApiUserDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+            var dbAutomacoes = new SqlConnection(ConexaoIntranet);
+            dbAutomacoes.Open();
+
 
             try
             {
-                return Results.Ok(await data.GetUsers());
+
+                var Elements = await dbAutomacoes.QueryAsync<IUserData>("SELECT * FROM tb_teste1");
+                dbAutomacoes.Close();
+                return Results.Ok(Elements);
             }
-            catch (Exception ex){
+            catch (Exception ex)
+            {
 
                 return Results.Problem(ex.Message);
-            
-            }   
+
+            }
+
 
         }
 
@@ -50,8 +62,15 @@ namespace MinimalApiDapper
         {
             try
             {
-                await data.InsertUser(user);
-                return Results.Ok();
+                string ConexaoIntranet = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MinimalApiUserDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+                var dbAutomacoes = new SqlConnection(ConexaoIntranet);
+                dbAutomacoes.Open();
+
+                var Elements = await dbAutomacoes.ExecuteAsync($"INSERT INTO tb_teste1 (id,titulo,autor) VALUES ('{user.id}','{user.titulo}', '{user.autor}');");
+                dbAutomacoes.Close();
+                return Results.Ok(Elements);
+
+              
             }
             catch (Exception ex)
             {
@@ -71,18 +90,29 @@ namespace MinimalApiDapper
             }
             catch (Exception ex)
             {
+                string ConexaoIntranet = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MinimalApiUserDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+                var dbAutomacoes = new SqlConnection(ConexaoIntranet);
+                dbAutomacoes.Open();
 
+               // var Elements = await dbAutomacoes.ExecuteAsync($"DELETE FROM tb_teste1 WHERE id  = {id}");
+                dbAutomacoes.Close();
                 return Results.Problem(ex.Message);
 
             }
 
         }
 
-        private static async Task<IResult> DeleteUser(int id, IUserData data)
+        private static async Task<IResult> DeleteUser(int id, IUserData data )
         {
 
             try
             {
+                 string ConexaoIntranet = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MinimalApiUserDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+                var dbAutomacoes = new SqlConnection(ConexaoIntranet);
+                dbAutomacoes.Open();
+
+                var Elements = await dbAutomacoes.ExecuteAsync($"DELETE FROM tb_teste1 WHERE id  = {id}");
+                dbAutomacoes.Close();
                 await data.DeleteUser(id);
                 return Results.Ok();
             }

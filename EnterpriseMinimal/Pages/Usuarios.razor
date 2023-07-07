@@ -1,0 +1,200 @@
+﻿@page "/usuarios"
+
+<MudGrid>
+    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large" />
+
+    <h1>Livros </h1>
+</MudGrid>
+<PageTitle>Usuarios</PageTitle>
+
+
+@using System.Net.Http.Json
+@using EnterpriseMinimal.Data.Models
+@using System.Data.SqlClient;
+@using Dapper;
+@using Services;
+@inject LivrosService Servicos;
+
+
+<br />
+<br />
+<MudIconButton Icon= "@Icons.Material.Filled.Add" OnClick="OpenForm" Class="meu-botao" Color="Color.Primary ">Criar Novo Registro</MudIconButton>
+
+@if (showForm)
+{
+
+    <MudCard>
+        <MudCardContent>
+          
+            <MudForm>
+                <MudItem xs="6" md="6">
+                    <MudTextField Label="ID" @bind-Value="livro.id" />
+                </MudItem>
+
+                <MudItem xs="6" md="6">
+                    <MudTextField Label="Livro" @bind-Value="livro.titulo" />
+                </MudItem>
+
+                <MudItem xs="6" md="6">
+                    <MudTextField Label="Autor" @bind-Value="livro.autor" />
+                </MudItem>
+                <br />
+                <br />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="Salvar">Salvar</MudButton>
+            </MudForm>
+        </MudCardContent>
+    </MudCard>
+   
+}
+<MudIconButton  @onclick="Apagar" Icon="@Icons.Material.Filled.Delete" aria-label="delete"></MudIconButton>
+
+
+
+
+@code {
+    private bool showForm = false;
+
+    private void OpenForm()
+    {
+        showForm = true;
+    }
+
+
+}
+
+ 
+<br />
+<br />
+<MudDataGrid T="User" Items="@Elements" MultiSelection="true" ReadOnly="@_readOnly" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter" Hideable="true" RowClick="@RowClicked" SelectedItemsChanged="@SelectedItemsChanged" EditMode="@(_isCellEditMode ? DataGridEditMode.Cell : DataGridEditMode.Form)"
+             StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem"
+             Bordered="true" Dense="true" EditTrigger="@(_editTriggerRowClick ? DataGridEditTrigger.OnRowClick : DataGridEditTrigger.Manual)" >
+             <ToolBarContent>
+        <MudText Typo="Typo.h6">Lista de livros</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+            AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <SelectColumn T="User" />
+        <PropertyColumn Property="User => User.id" Title="Id" IsEditable="false" />
+        <PropertyColumn Property="User => User.titulo" Title="Livro" />
+        <PropertyColumn Property="User => User.autor" Title="Autor" />
+ 
+      
+        <TemplateColumn Hidden ="@(_isCellEditMode || _readOnly || _editTriggerRowClick)" CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+  
+</MudDataGrid>
+
+
+
+
+
+@code {
+
+    private IEnumerable<Data.Models.User> Elements = new List<User>();
+    private List<Data.Models.User> ElementsUser = new List<User>();
+    private bool _readOnly;
+    private bool _isCellEditMode;
+    private List<string> _events = new();
+    private bool _editTriggerRowClick;
+    private User livro = new User();
+    private string _searchString;
+    private string ConexaoIntranet ="Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MinimalApiUserDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await CarregaLista();
+    }
+
+    private async Task CarregaLista()
+    {
+        var dbAutomacoes = new SqlConnection(ConexaoIntranet);
+        dbAutomacoes.Open();
+
+        Elements = await dbAutomacoes.QueryAsync<User>("SELECT * FROM tb_teste1");
+        dbAutomacoes.Close();
+        StateHasChanged();
+
+    }
+    private Func<User, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.autor.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.titulo.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+
+
+        return false;
+    };
+    void RowClicked(DataGridRowClickEventArgs<User> args)
+    {
+        _events.Insert(0, $"Event = RowClick, Index = {args.RowIndex}, Data = {System.Text.Json.JsonSerializer.Serialize(args.Item)}");
+    }
+    void SelectedItemsChanged(HashSet<User> items)
+    {
+        ElementsUser.Clear();
+        foreach (User item in items)
+        {
+            ElementsUser.Add(item);    
+        }
+
+
+        _events.Insert(0, $"Event = SelectedItemsChanged, Data = {System.Text.Json.JsonSerializer.Serialize(items)}");
+    }
+    private async Task Salvar()
+    {
+        // Lógica para salvar o livro no banco de dados ou fazer outras operações
+        // Você pode acessar os valores dos campos através da propriedade 'livro'
+        // Exemplo:
+        await Servicos.IncluirLivro(livro);
+        await CarregaLista();
+    }
+
+    private async Task Apagar ()
+    {
+        foreach (User item in ElementsUser)
+        {
+         
+            await Servicos.ExcluirLivro(item.id);
+            await CarregaLista();
+
+        }
+        
+    }
+
+    // events
+    void StartedEditingItem(User item)
+    {
+        _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    void CanceledEditingItem(User item)
+    {
+        _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    async Task  Atualizar(User item)
+    {
+        await Servicos.SalvarLivro(item);
+        await CarregaLista();
+       
+    }
+
+
+
+
+
+
+
+}

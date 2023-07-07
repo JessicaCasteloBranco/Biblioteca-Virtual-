@@ -1,16 +1,146 @@
 ﻿@page "/"
 
+@using EnterpriseFront.Data;
+@using Newtonsoft.Json;
 
-<MudGrid Justify="Justify.Center">
-    <MudAlert Class="mt-4 mud-width-full" Style="font-weight:bold; color:#424242; max-width:600px; background-color:white">Nesta página você pode pesquisar o Centro de Custo.</MudAlert>
-</MudGrid>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Endereço</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
 
-<br />
+        body {
+            background-color: #f5f5f5;
+        }
 
+        .form-blazor {
+            width: 700px;
+            margin-left: 50%;
+            transform: translateX(-50%);
+            height: 400px;
+            margin-top: 15%;
+            border-radius: 5px;
+            background-color: white;
+            position: absolute;
+        }
 
+        .inputs-blazor {
+            margin-top: 9%;
+            width: 70%;
+            margin-left: 50%;
+            transform: translateX(-50%);
+            position: absolute;
+        }
 
+        #input-only-line {
+            width: 70%;
+            float: left;
+        }
 
- 
-     
-            
+        .content-recovery {
+            margin-top: 15%;
+            position: relative;
+        }
 
+        .input-data-recovery {
+            width: 100%;
+            margin-top: 5%;
+            margin-left: 50%;
+            transform: translateX(-50%);
+            float: left;
+        }
+
+        .input-data-recovery-mid {
+            width: 45%;
+            float: left;
+            margin-top: 5%;
+        }
+
+        .input-space {
+            margin-left: 10%;
+        }
+
+        button {
+            float: left;
+            margin-left: 5%;
+        }
+
+        .btn-clear-blazor {
+            margin-left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .cep-list {
+            height: 100vh;
+            background-color: darkblue;
+            color: rgba(254,254,254,1);
+            width: 200px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-blazor">
+        <div class="inputs-blazor">
+            <input @bind="informacoesCep.Cep" class="form-control" id="input-only-line" placeholder="CEP (Somente Números)" />
+            <button @onclick="GetCepInformacoes" type="button" class="btn btn-primary mb-2">Buscar CEP</button>
+
+            <div class="content-recovery">
+                <input @bind="informacoesCep.Localidade" class="form-control input-data-recovery-mid" readonly placeholder="Localidade..." />
+                <input @bind="informacoesCep.Uf" class="form-control input-data-recovery-mid input-space" readonly placeholder="Unidade Federativa" />
+                <input @bind="informacoesCep.Logradouro" class="form-control input-data-recovery" readonly placeholder="Logradouro..." />
+                <input @bind="informacoesCep.Bairro" class="form-control input-data-recovery" readonly placeholder="Bairro...." />
+            </div>
+        </div>
+    </div>
+
+    <div class="cep-list">
+        <center>
+            <br /><br />
+            <button @onclick="CleanList" class="btn btn-danger btn-clear-blazor">Limpar</button>
+            <br /><br />
+            @foreach (var cep in listaDeCeps)
+            {
+                <br />
+                <br />
+                @cep
+            }
+        </center>
+    </div>
+</body>
+</html>
+@code {
+    Endereco informacoesCep = new Endereco();
+    List<string> listaDeCeps = new List<string>();
+
+    private async void GetCepInformacoes()
+    {
+
+        string url = "https://viacep.com.br/ws/" + informacoesCep.Cep + "/json";
+
+        using (var cliente = new HttpClient())
+        {
+            HttpResponseMessage resposta = await cliente.GetAsync(url);
+            string json = await resposta.Content.ReadAsStringAsync();
+            informacoesCep = JsonConvert.DeserializeObject<Endereco>(json);
+
+            informacoesCep.Cep = informacoesCep.Cep.Replace("-", "");
+            listaDeCeps.Add(informacoesCep.Cep);
+
+        }
+    }
+
+    private void CleanList()
+    {
+        informacoesCep.Cep = string.Empty;
+        informacoesCep.Bairro = string.Empty;
+        informacoesCep.Localidade = string.Empty;
+        informacoesCep.Logradouro = string.Empty;
+        informacoesCep.Uf = string.Empty;
+        listaDeCeps.Clear();
+    }
+}
